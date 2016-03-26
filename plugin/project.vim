@@ -76,8 +76,10 @@ function! s:Project(filename) " <<<
     " ProjFoldText() <<<
     "   The foldtext function for displaying just the description.
     function! ProjFoldText()
-        let line=substitute(getline(v:foldstart),'^[ \t#]*\([^=]*\).*', '\1', '')
-        let line=strpart('                                     ', 0, (v:foldlevel - 1)).substitute(line,'\s*{\+\s*', '', '')
+        let line=substitute(getline(v:foldstart),'^[ \t#]*\([^=]*\)[^#]*#\?\s*\(.*\)', '\1   # \2', '')
+        let line=substitute(line,'#\?\s*$', '', '')
+        let line=substitute(line,'{\s*#', '  #', '')
+     let line=strpart('                                     ', 0, (v:foldlevel - 1)).substitute(line,'\s*{\+\s*', '', '')
         return line
     endfunction ">>>
     " s:DoSetup() <<<
@@ -92,7 +94,9 @@ function! s:Project(filename) " <<<
     endfunction ">>>
     call s:DoSetup()
     " Syntax Stuff <<<
-    if match(g:proj_flags, '\Cs')!=-1 && has('syntax') && exists('g:syntax_on') && !has('syntax_items')
+    " Change to avoid confict with utl plugin HS 22.12.2006
+    " if match(g:proj_flags, '\Cs')!=-1 && has('syntax') && exists('g:syntax_on') && !has('syntax_items')
+    if match(g:proj_flags, '\Cs')!=-1 && has('syntax') && exists('g:syntax_on')
         syntax match projectDescriptionDir '^\s*.\{-}=\s*\(\\ \|\f\|:\|"\)\+' contains=projectDescription,projectWhiteError
         syntax match projectDescription    '\<.\{-}='he=e-1,me=e-1         contained nextgroup=projectDirectory contains=projectWhiteError
         syntax match projectDescription    '{\|}'
@@ -100,7 +104,10 @@ function! s:Project(filename) " <<<
         syntax match projectDirectory      '=".\{-}"'                      contained
         syntax match projectScriptinout    '\<in\s*=\s*\(\\ \|\f\|:\|"\)\+' contains=projectDescription,projectWhiteError
         syntax match projectScriptinout    '\<out\s*=\s*\(\\ \|\f\|:\|"\)\+' contains=projectDescription,projectWhiteError
-        syntax match projectComment        '#.*'
+        syntax keyword projectTodo         contained TODO Todo
+        syntax match projectTodo           contained "\*!\*!\*"
+        " Change HS, 10.12.2007: Add Spell
+        syntax match projectComment        '#.*'                           contains=projectTodo,@Spell
         syntax match projectCD             '\<CD\s*=\s*\(\\ \|\f\|:\|"\)\+' contains=projectDescription,projectWhiteError
         syntax match projectFilterEntry    '\<filter\s*=.*"'               contains=projectWhiteError,projectFilterError,projectFilter,projectFilterRegexp
         syntax match projectFilter         '\<filter='he=e-1,me=e-1        contained nextgroup=projectFilterRegexp,projectFilterError,projectWhiteError
@@ -118,6 +125,7 @@ function! s:Project(filename) " <<<
         highlight def link projectScriptinout  Identifier
         highlight def link projectFoldText     Identifier
         highlight def link projectComment      Comment
+        highlight def link projectTodo         Todo
         highlight def link projectFilter       Identifier
         highlight def link projectFlags        Identifier
         highlight def link projectDirectory    Constant
@@ -401,12 +409,15 @@ function! s:Project(filename) " <<<
             call s:DoEnsurePlacementSize_au()
             call s:OpenEntry(line('.'), a:cmd0, a:cmd1, 0)
             if (match(g:proj_flags, '\Cc') != -1)
-                let g:proj_mywinnumber = winbufnr(0)
+                let proj_mybufname = bufname("%")
                 Project
                 hide
-                if(g:proj_mywinnumber != winbufnr(0))
-                    wincmd p
-                endif
+		if(proj_mybufname != bufname("%"))
+"			wincmd p
+"			from some vim version on (v7.0?) would have
+"			switched to hidden Project window.
+			exe bufwinnr(proj_mybufname)."wincmd w"
+			endif
                 wincmd =
             endif
         endif
@@ -891,6 +902,8 @@ function! s:Project(filename) " <<<
             endif
             let b:totalcount=b:totalcount+1
             let fname=substitute(fname, '^\~', $HOME, 'g')
+            let fname=expand(fname)
+"            echomsg fname
             if bufloaded(substitute(fname, '\\ ', ' ', 'g'))
                 if getbufvar(fname.'\>', '&modified') == 1
                     exec 'sb '.fname
@@ -959,7 +972,7 @@ function! s:Project(filename) " <<<
                 copen
             endif
         else
-            silent! exec 'silent! vimgrep '.pattern.' '.fnames
+            silent! exec 'silent! noau vimgrep /'.pattern.'/j '.fnames.'|cw'
             copen
         endif
     endfunction ">>>
@@ -1048,7 +1061,7 @@ function! s:Project(filename) " <<<
         unlet b:fnamelist
         return retval
     endfunction ">>>
-    " Project_GetAllFnames(recurse, lineno, separator) <<<
+    " Project_GetFnames(lineno) <<<
     "   Grep all files in a project, optionally recursively
     function! Project_GetFname(line)
         if (foldlevel(a:line) == 0)
@@ -1221,7 +1234,8 @@ function! s:Project(filename) " <<<
         nnoremap <buffer> <silent> <LocalLeader>r :call <SID>RefreshEntriesFromDir(0)<CR>
         nnoremap <buffer> <silent> <LocalLeader>R :call <SID>RefreshEntriesFromDir(1)<CR>
         " For Windows users: same as \R
-        nnoremap <buffer> <silent>           <F5> :call <SID>RefreshEntriesFromDir(1)<CR>
+        " hgs Collides with my F5 mappings for folding
+"        nnoremap <buffer> <silent>           <F5> :call <SID>RefreshEntriesFromDir(1)<CR>
         nnoremap <buffer> <silent> <LocalLeader>e :call <SID>OpenEntry(line('.'), '', '', 0)<CR>
         nnoremap <buffer> <silent> <LocalLeader>E :call <SID>OpenEntry(line('.'), '', 'e', 1)<CR>
         " The :help command stomps on the Project Window.  Try to avoid that.
