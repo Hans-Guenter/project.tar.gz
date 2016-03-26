@@ -79,7 +79,7 @@ function! s:Project(filename) " <<<
         let line=substitute(getline(v:foldstart),'^[ \t#]*\([^=]*\)[^#]*#\?\s*\(.*\)', '\1   # \2', '')
         let line=substitute(line,'#\?\s*$', '', '')
         let line=substitute(line,'{\s*#', '  #', '')
-     let line=strpart('                                     ', 0, (v:foldlevel - 1)).substitute(line,'\s*{\+\s*', '', '')
+     	let line=strpart('                                     ', 0, (v:foldlevel - 1)).substitute(line,'\s*{\+\s*', '', '')
         return line
     endfunction ">>>
     " s:DoSetup() <<<
