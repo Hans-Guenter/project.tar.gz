@@ -522,7 +522,7 @@ function! s:Project(filename) " <<<
             let dir = browse(0, 'Enter the '.absolute.'Directory to Load: ', '', '')
             let dir = fnamemodify(dir, ':p')
         else
-            let dir = inputdialog('Enter the '.absolute.'Directory to Load: ', '')
+            let dir = input('Enter the '.absolute.'Directory to Load: ', '', 'file')
         endif
         if (dir[strlen(dir)-1] == '/') || (dir[strlen(dir)-1] == '\\')
             let dir=strpart(dir, 0, strlen(dir)-1) " Remove trailing / or \
