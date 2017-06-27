@@ -21,7 +21,11 @@ function! s:Project(filename) " <<<
         let filename=bufname(g:proj_running)
     else
         if strlen(a:filename) == 0
-            let filename ='~/.vimprojects'      " Default project filename
+            if exists("g:proj_file") && strlen(g:proj_file) > 0
+                let filename = g:proj_file      " Global project file variable
+            else
+                let filename ='~/.vimprojects'  " Default project filename
+            endif
         else
             let filename = a:filename
         endif
@@ -79,7 +83,7 @@ function! s:Project(filename) " <<<
         let line=substitute(getline(v:foldstart),'^[ \t#]*\([^=]*\)[^#]*#\?\s*\(.*\)', '\1   # \2', '')
         let line=substitute(line,'#\?\s*$', '', '')
         let line=substitute(line,'{\s*#', '  #', '')
-     	let line=strpart('                                     ', 0, (v:foldlevel - 1)).substitute(line,'\s*{\+\s*', '', '')
+        let line=strpart('                                     ', 0, (v:foldlevel - 1)).substitute(line,'\s*{\+\s*', '', '')
         return line
     endfunction ">>>
     " s:DoSetup() <<<
@@ -88,13 +92,14 @@ function! s:Project(filename) " <<<
         setlocal foldenable foldmethod=marker foldmarker={,} commentstring=%s foldcolumn=0 nonumber noswapfile shiftwidth=1
         setlocal foldtext=ProjFoldText() nobuflisted nowrap
         setlocal winwidth=1
+        setlocal conceallevel=2
         if match(g:proj_flags, '\Cn') != -1
             setlocal number
         endif
     endfunction ">>>
     call s:DoSetup()
     " Syntax Stuff <<<
-    " Change to avoid confict with utl plugin HS 22.12.2006
+    " Change to avoid conflict with utl plugin HS 22.12.2006
     " if match(g:proj_flags, '\Cs')!=-1 && has('syntax') && exists('g:syntax_on') && !has('syntax_items')
     if match(g:proj_flags, '\Cs')!=-1 && has('syntax') && exists('g:syntax_on')
         syntax match projectDescriptionDir '^\s*.\{-}=\s*\(\\ \|\f\|:\|"\)\+' contains=projectDescription,projectWhiteError
@@ -107,7 +112,9 @@ function! s:Project(filename) " <<<
         syntax keyword projectTodo         contained TODO Todo
         syntax match projectTodo           contained "\*!\*!\*"
         " Change HS, 10.12.2007: Add Spell
-        syntax match projectComment        '#.*'                           contains=projectTodo,@Spell
+        syntax match projectComment        '#.*'                           contains=projectpragmakeep,projecturlProject,projectTodo,@Spell
+        syntax match projectpragmakeep     contained /\s*pragma keep/      conceal cchar=p
+        syntax match projecturlProject     contained containedin=UtlUrl /vimscript:tab Pro/ conceal cchar=v
         syntax match projectCD             '\<CD\s*=\s*\(\\ \|\f\|:\|"\)\+' contains=projectDescription,projectWhiteError
         syntax match projectFilterEntry    '\<filter\s*=.*"'               contains=projectWhiteError,projectFilterError,projectFilter,projectFilterRegexp
         syntax match projectFilter         '\<filter='he=e-1,me=e-1        contained nextgroup=projectFilterRegexp,projectFilterError,projectWhiteError
@@ -124,6 +131,7 @@ function! s:Project(filename) " <<<
         highlight def link projectDescription  Identifier
         highlight def link projectScriptinout  Identifier
         highlight def link projectFoldText     Identifier
+        highlight def link projectpragmakeep   Comment
         highlight def link projectComment      Comment
         highlight def link projectTodo         Todo
         highlight def link projectFilter       Identifier
@@ -329,6 +337,10 @@ function! s:Project(filename) " <<<
                 let fname=substitute(getline(a:line), '\s*#.*', '', '') " Get rid of comments and whitespace before comment
                 let fname=substitute(fname, '^\s*\(.*\)', '\1', '') " Get rid of leading whitespace
                 if strlen(fname) == 0
+									" DONE try to perform commands from the pragma keep part.
+                		let fname=substitute(getline(a:line), '\s*#\s*pragma keep\s*', '', '') " Get rid of pragma keep and preceeding parts
+                		echomsg "fname in Project is " . fname
+                		call hgsutils#OpenLink(0,fname)
                     return 0                    " The line is blank. Do nothing.
                 endif
             endif
@@ -1203,6 +1215,8 @@ function! s:Project(filename) " <<<
         nnoremap <buffer> <silent> <LocalLeader>W \|:call <SID>WipeAll(1, line('.'))<CR>
         nnoremap <buffer> <silent> <LocalLeader>g \|:call <SID>GrepAll(0, line('.'), "")<CR>
         nnoremap <buffer> <silent> <LocalLeader>G \|:call <SID>GrepAll(1, line('.'), "")<CR>
+        nnoremap <buffer> <silent> <LocalLeader>j \|:call <SID>GrepAll(0, line('.'), @/)<CR>
+        nnoremap <buffer> <silent> <LocalLeader>J \|:call <SID>GrepAll(1, line('.'), @/)<CR>
         nnoremap <buffer> <silent> <2-LeftMouse>   \|:call <SID>DoFoldOrOpenEntry('', 'e')<CR>
         nnoremap <buffer> <silent> <S-2-LeftMouse> \|:call <SID>DoFoldOrOpenEntry('', 'sp')<CR>
         nnoremap <buffer> <silent> <M-2-LeftMouse> <M-CR>
@@ -1285,6 +1299,9 @@ if !exists("*<SID>DoToggleProject()") "<<<
         if !exists('g:proj_running') || bufwinnr(g:proj_running) == -1
             Project
         else
+        	  if &ft == "qf"
+        	  	wincmd t
+        	  endif
             let g:proj_mywindow = winnr()
             Project
             hide
