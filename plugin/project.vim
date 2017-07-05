@@ -14,6 +14,7 @@ let loaded_project=1
 
 function! s:Project(filename) " <<<
     " Initialization <<<
+    set lazyredraw
     if exists("g:proj_running")
         if strlen(a:filename) != 0
             call confirm('Project already loaded; ignoring filename "'.a:filename."\".\n".'See ":help project-invoking" for information about changing project files.', "&OK", 1)
@@ -60,6 +61,8 @@ function! s:Project(filename) " <<<
                 enew
             endif
         endif
+        set nolazyredraw
+        redraw
         return
     endif
     " Process the flags
@@ -1288,6 +1291,8 @@ function! s:Project(filename) " <<<
         endif
         setlocal nobuflisted
     endif
+		set nolazyredraw
+		redraw
 endfunction " >>>
 
 if exists(':Project') != 2
