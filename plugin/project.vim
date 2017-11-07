@@ -14,6 +14,10 @@ let loaded_project=1
 
 function! s:Project(filename) " <<<
     " Initialization <<<
+    function! s:ReverseStart() " <<<
+        set nolazyredraw
+        redraw
+    endfunction ">>>
     set lazyredraw
     if exists("g:proj_running")
         if strlen(a:filename) != 0
@@ -61,8 +65,7 @@ function! s:Project(filename) " <<<
                 enew
             endif
         endif
-        set nolazyredraw
-        redraw
+        call s:ReverseStart()
         return
     endif
     " Process the flags
@@ -191,7 +194,7 @@ function! s:Project(filename) " <<<
     " s:IsAbsolutePath(path) <<<
     "   Returns true if filename has an absolute path.
     function! s:IsAbsolutePath(path)
-        if a:path =~ '^ftp:' || a:path =~ '^rcp:' || a:path =~ '^scp:' || a:path =~ '^http:'
+        if a:path =~ '^ftp:' || a:path =~ '^rcp:' || a:path =~ '^scp:' || a:path =~ '^https\?:'
             return 2
         endif
         if a:path =~ '\$'
@@ -340,10 +343,10 @@ function! s:Project(filename) " <<<
                 let fname=substitute(getline(a:line), '\s*#.*', '', '') " Get rid of comments and whitespace before comment
                 let fname=substitute(fname, '^\s*\(.*\)', '\1', '') " Get rid of leading whitespace
                 if strlen(fname) == 0
-									" DONE try to perform commands from the pragma keep part.
-                		let fname=substitute(getline(a:line), '\s*#\s*pragma keep\s*', '', '') " Get rid of pragma keep and preceeding parts
-                		echomsg "fname in Project is " . fname
-                		call hgsutils#OpenLink(0,fname)
+                  " DONE try to perform commands from the pragma keep part.
+                    let fname=substitute(getline(a:line), '\s*#\s*pragma keep\s*', '', '') " Get rid of pragma keep and preceeding parts
+                    echomsg "fname in Project is " . fname
+                    call hgsutils#OpenLink(0,fname)
                     return 0                    " The line is blank. Do nothing.
                 endif
             endif
@@ -427,12 +430,12 @@ function! s:Project(filename) " <<<
                 let proj_mybufname = bufname("%")
                 Project
                 hide
-		if(proj_mybufname != bufname("%"))
-"			wincmd p
-"			from some vim version on (v7.0?) would have
-"			switched to hidden Project window.
-			exe bufwinnr(proj_mybufname)."wincmd w"
-			endif
+    if(proj_mybufname != bufname("%"))
+"     wincmd p
+"     from some vim version on (v7.0?) would have
+"     switched to hidden Project window.
+      exe bufwinnr(proj_mybufname)."wincmd w"
+      endif
                 wincmd =
             endif
         endif
@@ -1291,8 +1294,7 @@ function! s:Project(filename) " <<<
         endif
         setlocal nobuflisted
     endif
-		set nolazyredraw
-		redraw
+    call s:ReverseStart()
 endfunction " >>>
 
 if exists(':Project') != 2
@@ -1304,9 +1306,9 @@ if !exists("*<SID>DoToggleProject()") "<<<
         if !exists('g:proj_running') || bufwinnr(g:proj_running) == -1
             Project
         else
-        	  if &ft == "qf"
-        	  	wincmd t
-        	  endif
+            if &ft == "qf"
+              wincmd t
+            endif
             let g:proj_mywindow = winnr()
             Project
             hide
