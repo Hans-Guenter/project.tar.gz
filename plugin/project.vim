@@ -16,9 +16,18 @@ function! s:Project(filename) " <<<
     " Initialization <<<
     function! s:ReverseStart() " <<<
         set nolazyredraw
+				if exists("l:foldenable")
+					let &l:foldenable = l:foldenable
+				endif
+				if exists("l:save_view")
+					call winrestview(l:save_view)
+				endif
         redraw
     endfunction ">>>
     set lazyredraw
+		let l:foldenable = &l:foldenable
+  	let l:save_view = winsaveview()
+		setlocal nofoldenable
     if exists("g:proj_running")
         if strlen(a:filename) != 0
             call confirm('Project already loaded; ignoring filename "'.a:filename."\".\n".'See ":help project-invoking" for information about changing project files.', "&OK", 1)
@@ -1203,6 +1212,8 @@ function! s:Project(filename) " <<<
         " >>>
 
         " Mappings <<<
+        nnoremap <buffer> <silent> <c-f9>  \|:call hgsutils#ToggleFoldmethod()<CR>
+        inoremap <buffer> <silent> <c-f9>  <Esc>:call hgsutils#ToggleFoldmethod()<CR>a
         nnoremap <buffer> <silent> <Return>   \|:call <SID>DoFoldOrOpenEntry('', 'e')<CR>
         nnoremap <buffer> <silent> <S-Return> \|:call <SID>DoFoldOrOpenEntry('', 'sp')<CR>
         nnoremap <buffer> <silent> <C-Return> \|:call <SID>DoFoldOrOpenEntry('silent! only', 'e')<CR>
@@ -1303,20 +1314,23 @@ endif
 " Toggle Mapping
 if !exists("*<SID>DoToggleProject()") "<<<
     function! s:DoToggleProject()
-        if !exists('g:proj_running') || bufwinnr(g:proj_running) == -1
-            Project
-        else
-            if &ft == "qf"
-              wincmd t
-            endif
-            let g:proj_mywindow = winnr()
-            Project
-            hide
-            if(winnr() != g:proj_mywindow)
-                wincmd p
-            endif
-            unlet g:proj_mywindow
-        endif
+			if !exists('g:proj_running') || bufwinnr(g:proj_running) == -1
+				Project
+			else
+				set lazyredraw
+				if &ft == "qf"
+					sil! wincmd t
+				endif
+				let proj_mywindow = winnr()
+				Project
+				hide
+				if(winnr() != proj_mywindow)
+					sil! wincmd p
+				endif
+				unlet proj_mywindow
+				set nolazyredraw
+				redraw
+			endif
     endfunction
 endif ">>>
 nnoremap <script> <Plug>ToggleProject :call <SID>DoToggleProject()<CR>
