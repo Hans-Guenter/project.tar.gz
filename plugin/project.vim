@@ -20,6 +20,7 @@ endif
 nnoremap <script> <Plug>ToggleProject :call Project#DoToggleProject()<CR>
 if exists('g:proj_flags') && (match(g:proj_flags, '\Cg') != -1)
     if !hasmapto('<Plug>ToggleProject')
-        nmap <silent> <F12> <Plug>ToggleProject
+        nnoremap <silent> <F12> <Plug>ToggleProject
     endif
 endif
+
