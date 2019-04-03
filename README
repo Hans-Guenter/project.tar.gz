@@ -1,5 +1,24 @@
 This is a mirror of http://www.vim.org/scripts/script.php?script_id=69
 
+
+----------------------------------------------
+This project is basically an attempt to separate all elements into the appropriate parts
+	autoload
+	doc
+	ftdetect
+	ftplugin
+	plugin
+	syntax
+	
+	
+Additionally it incorporates some improvements and adjustments.
+Currently it contains references to to other plugins not yet uploaded.
+----------------------------------------------
+
+
+
+
+
 You can use this plugin's basic functionality to set up a list of
 frequently-accessed files for easy navigation. The list of files
 will be displayed in a window on the left side of the Vim
