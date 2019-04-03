@@ -115,7 +115,7 @@ normal Vim escapes. Here are two examples of the same directory:
 	Example="/my/directory/with spaces" {
 	}
 
-I recommend this for Windows®: >
+I recommend this for WindowsÂ®: >
 
 	Example="c:\My Documents" {
 	}
@@ -335,7 +335,7 @@ Map	Action ~
 	entered Projects.
 
 \I	Show in the status line the completely resolved filename.  Uses the
-        Project_GetFname(line('.')) function.
+        Project#GetFname(line('.')) function.
 
 \1 - \9
 	Run the command specified in g:proj_run{x} where {x} is the number
@@ -409,7 +409,7 @@ number of entries in a project when you press \K (Kount, C is taken :-): >
 	    let b:loadcount = b:loadcount + 1
 	    if getchar(0) != 0 | let b:stop_everything=1 | endif
         endfunction
-        call Project_ForEach(1, line('.'), "*SpawnExec", 0, '')
+        call Project#ForEach(1, line('.'), "*SpawnExec", 0, '')
         delfunction SpawnExec
         echon b:loadcount." Files\r"
         unlet b:loadcount
@@ -425,10 +425,10 @@ Here's another example of how I integrated the use of perforce with the plugin
 in my $HOME/.vimproject_mappings:
 >
 	function! s:DoP4(cmd)
-	   let name=Project_GetFname(line('.'))
+	   let name=Project#GetFname(line('.'))
 	   let dir=substitute(name, '\(.*\)/.*', '\1', 'g')
 	   exec 'cd '.dir
-	   exec "!".a:cmd.' '.Project_GetFname(line('.'))
+	   exec "!".a:cmd.' '.Project#GetFname(line('.'))
 	   cd -
 	endfunction
 
@@ -447,7 +447,7 @@ a jpg file).  It is a bit contrived, but it works.
 >
 	let s:sid = substitute(maparg('<Return>', 'n'), '.*\(<SNR>.\{-}\)_.*', '\1', '')
 	function! s:LaunchOrWhat()
-	    let fname=Project_GetFname(line('.'))
+	    let fname=Project#GetFname(line('.'))
 	    if fname =~ '\.jpg$'
 		exec 'silent! !ee "'.fname.'"&'
 	    else
@@ -669,11 +669,11 @@ TIPS ON USING PROJECT PLUGIN					*project-tips*
 6.  If the Project window gets a bit cluttered with folds partially
     open/closed, you can press |zM| to close everything and tidy it up.
 
-7.  For advanced users, I am exporting the function Project_GetAllFnames()
+7.  For advanced users, I am exporting the function Project#GetAllFnames()
     which returns all the filenames within a fold and optionally all its
-    Subprojects.  Also, I export Project_ForEach() for running a function for
+    Subprojects.  Also, I export Project#ForEach() for running a function for
     each filename in the project. See the code for examples on how to use
-    these. Finally, I export Project_GetFname(line_number) so that you can
+    these. Finally, I export Project#GetFname(line_number) so that you can
     write your own mappings and get the filename for it.
 
 8.  Some people have asked how to do a global mapping to take the cursor to
