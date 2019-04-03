@@ -302,7 +302,7 @@ function! Project#OpenEntry(line, precmd, editcmd, dir)
                 let fname=substitute(getline(a:line), '\s*#\s*pragma keep\s*', '', '') " Get rid of pragma keep and preceeding parts
                 echomsg "fname in Project is " . fname
                 call hgsutils#OpenLink(0,fname)
-                return 0                    " The line is blank. Do nothing.
+                return -1                    " The line is blank. Do nothing.
             endif
         endif
     else
@@ -380,7 +380,12 @@ function! Project#DoFoldOrOpenEntry(cmd0, cmd1)
 		normal! za
 	else
 		call Project#DoEnsurePlacementSize_au()
-		call Project#OpenEntry(line('.'), a:cmd0, a:cmd1, 0)
+		let retval=Project#OpenEntry(line('.'), a:cmd0, a:cmd1, 0)
+		if retval == -1
+			" hgsutils#OpenLink had been called
+			call Project#DoToggleProject()
+			return
+		endif
 		if (match(g:proj_flags, '\Cc') != -1)
 			let proj_mybufname = bufname("%")
 			Project
@@ -1040,6 +1045,10 @@ endfunction ">>>
 "   DONE Only works correctly if project window is closed and reopened (check with ,I)
 "        Resolved by doautocmd BufEnter in Project#Project
 function! Project#GetFname(line)
+	  if &fdm != "marker"
+	  	echoerr "Foldmethod not marker. Operation aborted!"
+	  	return
+		endif
     if (foldlevel(a:line) == 0)
         return ''
     endif
@@ -1179,11 +1188,11 @@ function! Project#DoToggleProject() " <<<
 endfunction " >>>
 fun! Project#ProjectGetFileNames(recur) " <<<
 	let g:project_current_filelist=map(map(split(Project#GetAllFnames(a:recur,line("."),";"), ";"),"expand(v:val)"),"fnamemodify(v:val,\":p\")")
-	" TODO Files with blanks need escaping leads currently to error: E110: Missing ')' 
-	sil! let g:project_current_existing_filelist=filter(map(copy(g:project_current_filelist),'filereadable(escape(v:val,"\\ "))?("""".v:val.""""):""'),'v:val!~"^\s*$"')
 endfun " >>>
 fun! Project#ProjectGetExistingFileNames(recur) " <<<
 	call Project#ProjectGetFileNames(a:recur)
+	" DONE Files with blanks need escaping leads currently to error: E110: Missing ')' 
+	sil! let g:project_current_existing_filelist=filter(map(copy(g:project_current_filelist),'filereadable(escape(v:val,"\\"))?("".v:val.""):""'),'v:val!~"^\s*$"')
 	let @*=join(g:project_current_existing_filelist,"\n")
 	echomsg b:variablemessage . "(recur = " . a:recur . ", @* = g:project_current_existing_filelist)"
 endfun " >>>
