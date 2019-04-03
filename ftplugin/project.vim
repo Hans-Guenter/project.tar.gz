@@ -13,6 +13,7 @@ setlocal foldenable foldmethod=marker foldmarker={,} commentstring=%s foldcolumn
 setlocal foldtext=Project#ProjFoldText() nobuflisted nowrap
 setlocal winwidth=1
 setlocal conceallevel=2
+setlocal concealcursor=nc
 if match(g:proj_flags, '\Cn') != -1
     setlocal number
 endif
@@ -53,29 +54,30 @@ command! -nargs=1 ProjectGetExistingFileNames call Project#ProjectGetExistingFil
 "		Workaround by calling ws because function ProjectGrepTODOInAllFileNames sometimes bails out when executing xxcmd
 command! -nargs=0 ProjectGrepTODOInAllFileNames call Project#ProjectGrepTODOInAllFileNames()<bar>cw
 
-imap <buffer> <localleader>a <c-\><c-n>:ProjectGetAllFileNames 0<Cr>
-nmap <buffer> <localleader>a :ProjectGetAllFileNames 0<Cr>
-imap <buffer> <localleader>A <c-\><c-n>:ProjectGetAllFileNames 1<Cr>
-nmap <buffer> <localleader>A :ProjectGetAllFileNames 1<Cr>
+inoremap <buffer> <localleader>a <c-\><c-n>:ProjectGetAllFileNames 0<Cr>
+nnoremap <buffer> <localleader>a :ProjectGetAllFileNames 0<Cr>
+inoremap <buffer> <localleader>A <c-\><c-n>:ProjectGetAllFileNames 1<Cr>
+nnoremap <buffer> <localleader>A :ProjectGetAllFileNames 1<Cr>
 
-imap <buffer> <localleader>xa <c-\><c-n>:ProjectGetExistingFileNames 0<Cr>
-nmap <buffer> <localleader>xa :ProjectGetExistingFileNames 0<Cr>
+inoremap <buffer> <localleader>xa <c-\><c-n>:ProjectGetExistingFileNames 0<Cr>
+nnoremap <buffer> <localleader>xa :ProjectGetExistingFileNames 0<Cr>
 
-imap <buffer> <localleader>xA <c-\><c-n>:ProjectGetExistingFileNames 1<Cr>
-nmap <buffer> <localleader>xA :ProjectGetExistingFileNames 1<Cr>
-imap <buffer> <localleader>XA <c-\><c-n>:ProjectGetExistingFileNames 1<Cr>
-nmap <buffer> <localleader>XA :ProjectGetExistingFileNames 1<Cr>
+inoremap <buffer> <localleader>xA <c-\><c-n>:ProjectGetExistingFileNames 1<Cr>
+nnoremap <buffer> <localleader>xA :ProjectGetExistingFileNames 1<Cr>
+inoremap <buffer> <localleader>XA <c-\><c-n>:ProjectGetExistingFileNames 1<Cr>
+nnoremap <buffer> <localleader>XA :ProjectGetExistingFileNames 1<Cr>
 
-call arpeggio#map('n', 'b', 1, ',.', ':ProjectGrepTODOInAllFileNames<CR>')
-call arpeggio#map('i', 'b', 1, ',.', '<Esc>:ProjectGrepTODOInAllFileNames<CR>')
-call arpeggio#map('n', 'b', 1, '^.', ':ProjectGrepTODOInAllFileNames<CR>')
-call arpeggio#map('i', 'b', 1, '^.', '<Esc>:ProjectGrepTODOInAllFileNames<CR>')
+call arpeggio#map('n', 'b', 0, ',.', ':ProjectGrepTODOInAllFileNames<CR>')
+call arpeggio#map('i', 'b', 0, ',.', '<Esc>:ProjectGrepTODOInAllFileNames<CR>')
+call arpeggio#map('n', 'b', 0, '^.', ':ProjectGrepTODOInAllFileNames<CR>')
+call arpeggio#map('i', 'b', 0, '^.', '<Esc>:ProjectGrepTODOInAllFileNames<CR>')
 " From "C:\vim\vimfiles\ftplugin\project.vim" End
 "
 " From "~\.vimproject_mappings"" Begin
 nnoremap <buffer> <silent> <LocalLeader>I :let @*="\"".expand(Project#GetFname(line('.')))."\""\|echo @*<Cr>
 nnoremap <buffer> <silent> <LocalLeader>st :exe "sil! !start /b cmd /c ".shellescape(expand(Project#GetFname(line('.'))),1)<Cr>
-nnoremap <buffer> <silent> t :exe "tab new ".Project#GetFname(line('.'))<Cr>
+nnoremap <buffer> <silent> <LocalLeader>e :exe "sil !start explorer /e,/select, ".shellescape(expand(Project#GetFname(line('.'))),1)<Cr>
+nnoremap <buffer> <silent> <LocalLeader>b :exe "SVNBR " . shellescape(expand(Project#GetFname(line('.'))),1)<Cr>
 
 " Mappings from the Project#Project function
 nnoremap <buffer> <silent> <c-f9>  \|:call hgsutils#ToggleFoldmethod()<CR>
@@ -84,15 +86,15 @@ nnoremap <buffer> <silent> <Return>   \|:call Project#DoFoldOrOpenEntry('', 'e')
 nnoremap <buffer> <silent> <S-Return> \|:call Project#DoFoldOrOpenEntry('', 'sp')<CR>
 nnoremap <buffer> <silent> <C-Return> \|:call Project#DoFoldOrOpenEntry('silent! only', 'e')<CR>
 nnoremap <buffer> <silent> <LocalLeader>T \|:call Project#DoFoldOrOpenEntry('', 'tabe')<CR>
-nmap     <buffer> <silent> <LocalLeader>s <S-Return>
+nnoremap     <buffer> <silent> <LocalLeader>s <S-Return>
 nnoremap <buffer> <silent> <LocalLeader>S \|:call Project#LoadAllSplit(0, line('.'))<CR>
-nmap     <buffer> <silent> <LocalLeader>o <C-Return>
+nnoremap     <buffer> <silent> <LocalLeader>o <C-Return>
 nnoremap <buffer> <silent> <LocalLeader>i :echo Project#RecursivelyConstructDirectives(line('.'))<CR>
 " nnoremap <buffer> <silent> <LocalLeader>I :echo Project#GetFname(line('.'))<CR>
-" nmap     <buffer> <silent> <M-CR> <Return><C-W>p
+" nnoremap     <buffer> <silent> <M-CR> <Return><C-W>p
 nnoremap <buffer> <silent> <M-CR> :exe "botright new ".Project#GetFname(line('.'))<Cr><C-W>p
-nmap     <buffer> <silent> <LocalLeader>v <M-CR>
-nmap     <buffer> <silent> d<Cr> <M-CR>
+nnoremap     <buffer> <silent> <LocalLeader>v <M-CR>
+nnoremap     <buffer> <silent> d<Cr> <M-CR>
 nnoremap <buffer> <silent> <LocalLeader>l \|:call Project#LoadAll(0, line('.'))<CR>
 nnoremap <buffer> <silent> <LocalLeader>L \|:call Project#LoadAll(1, line('.'))<CR>
 nnoremap <buffer> <silent> <LocalLeader>w \|:call Project#WipeAll(0, line('.'))<CR>
@@ -106,18 +108,18 @@ nnoremap <buffer> <silent> <2-LeftMouse>   \|:call Project#DoFoldOrOpenEntry('',
 nnoremap <buffer> <silent> <S-2-LeftMouse> \|:call Project#DoFoldOrOpenEntry('', 'sp')<CR>
 nnoremap <buffer> <silent> <M-2-LeftMouse> <M-CR>
 nnoremap <buffer> <silent> <S-LeftMouse>   <LeftMouse>
-nmap     <buffer> <silent> <C-2-LeftMouse> <C-Return>
+nnoremap     <buffer> <silent> <C-2-LeftMouse> <C-Return>
 nnoremap <buffer> <silent> <C-LeftMouse>   <LeftMouse>
 nnoremap <buffer> <silent> <3-LeftMouse>  <Nop>
-nmap     <buffer> <silent> <RightMouse>   <space>
-nmap     <buffer> <silent> <2-RightMouse> <space>
-nmap     <buffer> <silent> <3-RightMouse> <space>
-nmap     <buffer> <silent> <4-RightMouse> <space>
+nnoremap     <buffer> <silent> <RightMouse>   <space>
+nnoremap     <buffer> <silent> <2-RightMouse> <space>
+nnoremap     <buffer> <silent> <3-RightMouse> <space>
+nnoremap     <buffer> <silent> <4-RightMouse> <space>
 nnoremap <buffer> <silent> <space>  \|:silent exec 'vertical resize '.(match(g:proj_flags, '\Ct')!=-1 && winwidth('.') > g:proj_window_width?(g:proj_window_width):(winwidth('.') + g:proj_window_increment))<CR>
 nnoremap <buffer> <silent> <C-Up>   \|:silent call Project#MoveUp()<CR>
 nnoremap <buffer> <silent> <C-Down> \|:silent call Project#MoveDown()<CR>
-nmap     <buffer> <silent> <LocalLeader><Up> <C-Up>
-nmap     <buffer> <silent> <LocalLeader><Down> <C-Down>
+nnoremap     <buffer> <silent> <LocalLeader><Up> <C-Up>
+nnoremap     <buffer> <silent> <LocalLeader><Down> <C-Down>
 let k=1
 while k < 10
     exec 'nnoremap <buffer> <LocalLeader>'.k.'  \|:call Project#Spawn('.k.')<CR>'
@@ -130,12 +132,13 @@ nnoremap <buffer>          <LocalLeader>f0 \|:call Project#ListSpawn("_fold")<CR
 nnoremap <buffer>          <LocalLeader>F0 \|:call Project#ListSpawn("_fold")<CR>
 nnoremap <buffer> <silent> <LocalLeader>c :call Project#CreateEntriesFromDir(0)<CR>
 nnoremap <buffer> <silent> <LocalLeader>C :call Project#CreateEntriesFromDir(1)<CR>
+
 nnoremap <buffer> <silent> <LocalLeader>r :call Project#RefreshEntriesFromDir(0)<CR>
 nnoremap <buffer> <silent> <LocalLeader>R :call Project#RefreshEntriesFromDir(1)<CR>
 " For Windows users: same as \R
 " hgs Collides with my F5 mappings for folding
 " nnoremap <buffer> <silent>           <F5> :call Project#RefreshEntriesFromDir(1)<CR>
-nnoremap <buffer> <silent> <LocalLeader>e :call Project#OpenEntry(line('.'), '', '', 0)<CR>
+" nnoremap <buffer> <silent> <LocalLeader>e :call Project#OpenEntry(line('.'), '', '', 0)<CR>
 nnoremap <buffer> <silent> <LocalLeader>E :call Project#OpenEntry(line('.'), '', 'e', 1)<CR>
 " The :help command stomps on the Project Window.  Try to avoid that.
 " This is not perfect, but it is alot better than without the mappings.
@@ -143,12 +146,12 @@ cnoremap <buffer> help let g:proj_doinghelp = 1<CR>:help
 nnoremap <buffer> <F1> :let g:proj_doinghelp = 1<CR><F1>
 " This is to avoid changing the buffer, but it is not fool-proof.
 nnoremap <buffer> <silent> <C-^> <Nop>
-"nnoremap <script> <Plug>ProjectOnly :let lzsave=&lz<CR>:set lz<CR><C-W>o:Project<CR>:silent! wincmd p<CR>:let &lz=lzsave<CR>:unlet lzsave<CR>
-nnoremap <script> <Plug>ProjectOnly :call Project#DoProjectOnly()<CR>
+"nmap <script> <Plug>ProjectOnly :let lzsave=&lz<CR>:set lz<CR><C-W>o:Project<CR>:silent! wincmd p<CR>:let &lz=lzsave<CR>:unlet lzsave<CR>
+nmap <script> <Plug>ProjectOnly :call Project#DoProjectOnly()<CR>
 if match(g:proj_flags, '\Cm') != -1
     if !hasmapto('<Plug>ProjectOnly')
         nmap <silent> <unique> <C-W>o <Plug>ProjectOnly
-        nmap <silent> <unique> <C-W><C-O> <C-W>o
+        nnoremap <silent> <unique> <C-W><C-O> <C-W>o
     endif
 endif " >>>
 " if filereadable(glob('~/.vimproject_mappings')) | source ~/.vimproject_mappings | endif
@@ -163,6 +166,10 @@ augroup Project
   autocmd BufLeave *.vpj if &filetype == 'Project'|let b:vop_save=&vop|set vop-=options|mkview!|let &vop=b:vop_save|unlet b:vop_save|endif
   " autocmd BufWinEnter,BufEnter *.vim if &filetype == 'Project'|silent loadview|set isf-=32|set fcl=|set fdo+=search|exe 'normal z.'|endif
   autocmd BufWinEnter,BufEnter *.vpj if &filetype == 'Project'|set isf-=32|set fcl=|set fdo+=search|exe 'normal z.'|endif
+
+	autocmd BufEnter *.vpj if &filetype == 'Project'|if !exists("b:shellslash_save")|let b:shellslash_save=&shellslash|set noshellslash|endif|endif
+  autocmd BufLeave *.vpj if &filetype == 'Project'|let &shellslash=b:shellslash_save|unlet b:shellslash_save|endif
+
 augroup End
 
 " Streamline space mapping with general map <space> za
@@ -173,10 +180,10 @@ nun 	<buffer> <silent> <3-RightMouse>
 nun 	<buffer> <silent> <4-RightMouse>
 nun 	<buffer> <silent> <space>
 
-nmap     <buffer> <silent> <RightMouse>   <S-space>
-nmap     <buffer> <silent> <2-RightMouse> <S-space>
-nmap     <buffer> <silent> <3-RightMouse> <S-space>
-nmap     <buffer> <silent> <4-RightMouse> <S-space>
+nnoremap     <buffer> <silent> <RightMouse>   <S-space>
+nnoremap     <buffer> <silent> <2-RightMouse> <S-space>
+nnoremap     <buffer> <silent> <3-RightMouse> <S-space>
+nnoremap     <buffer> <silent> <4-RightMouse> <S-space>
 nnoremap <buffer> <silent> <S-space>  \|:silent exec 'vertical resize '.(match(g:proj_flags, '\Ct')!=-1 && winwidth('.') > g:proj_window_width?(g:proj_window_width):(winwidth('.') + g:proj_window_increment))<CR>
 
 nnoremap <buffer> <silent> q :call Project#DoToggleProject()<CR> 
