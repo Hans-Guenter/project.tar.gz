@@ -1202,13 +1202,18 @@ fun! Project#ProjectGetAllFileNames(recur) " <<<
 	echomsg b:variablemessage . "(recur = " . a:recur . ", @* = g:project_current_filelist)"
 endfun " >>>
 fun! Project#ProjectGrepTODOInAllFileNames() " <<<
-	call Project#ProjectGetFileNames(1)
+	call Project#ProjectGetExistingFileNames(1)
 	if exists("g:tlTokenList")
 		let sstring="\\(" . join(g:tlTokenList,"\\|") ."\\)"
 	else
 		let sstring="todo"
 	endif
-	let xxcmd = 'silent! noau vimgrep /' . sstring . '/j ' . expand("%") . ' ' . join(g:project_current_existing_filelist, ' ') . '|cw'
+	if len(g:project_current_existing_filelist) > 0
+		let xxcmd = 'silent! noau vimgrep /' . sstring . '/j ' . expand("%") . ' ' . join(g:project_current_existing_filelist, ' ') . '|cw'
+	else
+		echoerr "No files found"
+		return
+	endif
 	" echomsg xxcmd
 	" silent! exe xxcmd
 	exe xxcmd
