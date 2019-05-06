@@ -74,7 +74,8 @@ call arpeggio#map('i', 'b', 0, '^.', '<Esc>:ProjectGrepTODOInAllFileNames<CR>')
 " From "C:\vim\vimfiles\ftplugin\project.vim" End
 "
 " From "~\.vimproject_mappings"" Begin
-nnoremap <buffer> <silent> <LocalLeader>I :let @*="\"".expand(Project#GetFname(line('.')))."\""\|echo @*<Cr>
+" nnoremap <buffer> <silent> <LocalLeader>I :let @*="\"".expand(Project#GetFname(line('.')))."\""\|echo @*<Cr>
+nnoremap <buffer> <silent> <LocalLeader>I :echo Project#GetPath(line('.'))<Cr>
 nnoremap <buffer> <silent> <LocalLeader>st :exe "sil! !start /b cmd /c ".shellescape(expand(Project#GetFname(line('.'))),1)<Cr>
 nnoremap <buffer> <silent> <LocalLeader>e :exe "sil !start explorer /e,/select, ".shellescape(expand(Project#GetFname(line('.'))),1)<Cr>
 nnoremap <buffer> <silent> <LocalLeader>b :exe "SVNBR " . shellescape(expand(Project#GetFname(line('.'))),1)<Cr>
@@ -91,9 +92,10 @@ nnoremap <buffer> <silent> <LocalLeader>S \|:call Project#LoadAllSplit(0, line('
 nnoremap     <buffer> <silent> <LocalLeader>o <C-Return>
 nnoremap <buffer> <silent> <LocalLeader>i :echo Project#RecursivelyConstructDirectives(line('.'))<CR>
 " nnoremap <buffer> <silent> <LocalLeader>I :echo Project#GetFname(line('.'))<CR>
-" nnoremap     <buffer> <silent> <M-CR> <Return><C-W>p
-nnoremap <buffer> <silent> <M-CR> :exe "botright new ".Project#GetFname(line('.'))<Cr><C-W>p
-nnoremap     <buffer> <silent> <LocalLeader>v <M-CR>
+" nmap     <buffer> <silent> <M-CR> <Return>:Project<Cr>
+" nmap <buffer> <silent> <M-CR> :exe "botright new ".Project#GetFname(line('.'))<bar>Project<Cr>
+nmap <buffer>  <M-CR> \|:call Project#DoFoldOrOpenEntry('', 'sp')<bar>call Project#DoToggleProject()<Cr>
+nmap     <buffer> <silent> <LocalLeader>v <M-CR>
 nnoremap     <buffer> <silent> d<Cr> <M-CR>
 nnoremap <buffer> <silent> <LocalLeader>l \|:call Project#LoadAll(0, line('.'))<CR>
 nnoremap <buffer> <silent> <LocalLeader>L \|:call Project#LoadAll(1, line('.'))<CR>
