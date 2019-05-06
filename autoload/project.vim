@@ -211,6 +211,18 @@ endfunction
 function! Project#RecordPrevBuffer_au()
     let g:proj_last_buffer = bufnr('%')
 endfunction ">>>
+" Project#GetLineInfo(lineno) <<<
+"   Get info from any line
+function! Project#GetPath(lineno)
+	  sil! let curinfo = expand(Project#GetFname(a:lineno))
+	  if curinfo == ""
+	  	let curinfo=Project#RecursivelyConstructDirectives(a:lineno)
+      let curinfo = expand(Project#GetHome(curinfo, ''))
+		endif
+    let curinfo = "\"".fnamemodify(curinfo,":p")."\""
+		let @*=curinfo
+		return curinfo
+endfunction ">>>
 " Project#RecursivelyConstructDirectives(lineno) <<<
 "   Construct the inherited directives
 function! Project#RecursivelyConstructDirectives(lineno)
