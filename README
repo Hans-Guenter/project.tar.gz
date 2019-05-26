@@ -2,7 +2,7 @@ This is a mirror of http://www.vim.org/scripts/script.php?script_id=69
 
 
 ----------------------------------------------
-This project is basically an attempt to separate all elements into the appropriate parts
+This repository is basically an attempt to separate all elements into the appropriate parts
 	autoload
 	doc
 	ftdetect
