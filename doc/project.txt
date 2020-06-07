@@ -377,9 +377,9 @@ Map	Action ~
 
 \G	Grep all the files in the current Project level and all Subprojects.
 
-\e	Set up the Environment for the Project File as though you had selected
+(\e	Set up the Environment for the Project File as though you had selected
 	it with <Return>.  This allows you to do a \e and a :make without
-	having to open any files in the project.
+	having to open any files in the project. (modified s. below))
 
 \E	Explore (using |file-explorer|) the directory of the project the
 	cursor is in.  Does not work with netrw.
@@ -394,6 +394,39 @@ Map	Action ~
 Note that the Project Plugin remaps :help because the Help Window and the
 Project Window get into a fight over placement. The mapping avoids the
 problem.
+
+
+==============================================================================
+NEW AND MODIFIED MAPPINGS FROM HGS		     *project-hgs-mappings*
+
+\j	Like \g with current search pattern
+
+\J	Like \G with current search pattern
+
+\e	Open Windows explorer for the directory of the project the
+	cursor is in.
+
+\T	Open file under cursor in new tab
+
+\S	Open all files of current project in splits
+
+\D	Like \C but takes information from current subproject the cursor is 
+	on.
+
+\st	Start registered aplication for file under cursor
+
+\b	Start subverions (SVN) browser for URL under cursor
+
+\a	Get all filenames for current project wo recursion in clipboard and 
+	in variable g:project_current_filelist
+
+\A	Like \a but recursively
+
+\xa	Get all filenames of existing files for current project wo recursion
+	in clipboard and in variable g:project_current_existing_filelist
+
+\xA	Like \xa but recursively
+\XA	Like \xa but recursively
 
 ==============================================================================
 ADDING MAPPINGS 				     *project-adding-mappings*
