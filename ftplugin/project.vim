@@ -2,7 +2,7 @@ if exists("b:did_ftplugin")
   finish
 endif
 let b:did_ftplugin = 1
-let b:variablemessage="Variables \"g:project_current_filelist\" and \"g:project_current_existing_filelist\" populated."
+let b:variablemessage="Variable \"g:project_current_filelist\" or \"g:project_current_existing_filelist\" populated."
 setlocal formatoptions-=a
 setlocal formatoptions+=l
 setlocal textwidth=0
@@ -40,6 +40,7 @@ if match(g:proj_flags, '\Cl') != -1
     let b:proj_cd_cmd = 'lcd'
 endif
 
+let b:proj_windowhelp=0
 let b:proj_locate_command='silent! wincmd H'
 let b:proj_resize_command='exec ''vertical resize ''.g:proj_window_width'
 if match(g:proj_flags, '\CF') != -1         " Set the resize commands to nothing
@@ -75,10 +76,15 @@ call arpeggio#map('i', 'b', 0, '^.', '<Esc>:ProjectGrepTODOInAllFileNames<CR>')
 "
 " From "~\.vimproject_mappings"" Begin
 " nnoremap <buffer> <silent> <LocalLeader>I :let @*="\"".expand(Project#GetFname(line('.')))."\""\|echo @*<Cr>
+"
+" TODO Develop xnoremap <LocalLeader>I
 nnoremap <buffer> <silent> <LocalLeader>I :echo Project#GetPath(line('.'))<Cr>
-nnoremap <buffer> <silent> <LocalLeader>st :exe "sil! !start /b cmd /c ".shellescape(expand(Project#GetFname(line('.'))),1)<Cr>
-nnoremap <buffer> <silent> <LocalLeader>e :exe "sil !start explorer /e,/select, ".shellescape(expand(Project#GetFname(line('.'))),1)<Cr>
-nnoremap <buffer> <silent> <LocalLeader>b :exe "SVNBR " . shellescape(expand(Project#GetFname(line('.'))),1)<Cr>
+" nnoremap <buffer> <silent> <LocalLeader>st :exe "sil! !start /b cmd /c ".shellescape(expand(Project#GetPath(line('.'))),1)<Cr>
+" nnoremap <buffer> <silent> <LocalLeader>e :exe "sil !start explorer /e,/select, "..shellescape(expand(Project#GetPath(line('.'))),1)<Cr>
+" nnoremap <buffer> <silent> <LocalLeader>b :exe "SVNBR " . shellescape(expand(Project#GetPath(line('.'))),1)<Cr>
+nnoremap <buffer> <silent> <LocalLeader>st :exe "sil! !start /b cmd /c " .. Project#GetPath(line('.'))<Cr>
+nnoremap <buffer> <silent> <LocalLeader>e :exe "sil !start explorer /e,/select, " .. Project#GetPath(line('.'))<Cr>
+nnoremap <buffer> <silent> <LocalLeader>b :exe "SVNBR " .. Project#GetPath(line('.'))<Cr>
 
 " Mappings from the Project#Project function
 nnoremap <buffer> <silent> <c-f9>  \|:call hgsutils#ToggleFoldmethod()<CR>
@@ -91,7 +97,6 @@ nnoremap     <buffer> <silent> <LocalLeader>s <S-Return>
 nnoremap <buffer> <silent> <LocalLeader>S \|:call Project#LoadAllSplit(0, line('.'))<CR>
 nnoremap     <buffer> <silent> <LocalLeader>o <C-Return>
 nnoremap <buffer> <silent> <LocalLeader>i :echo Project#RecursivelyConstructDirectives(line('.'))<CR>
-" nnoremap <buffer> <silent> <LocalLeader>I :echo Project#GetFname(line('.'))<CR>
 " nmap     <buffer> <silent> <M-CR> <Return>:Project<Cr>
 " nmap <buffer> <silent> <M-CR> :exe "botright new ".Project#GetFname(line('.'))<bar>Project<Cr>
 nmap <buffer>  <M-CR> \|:call Project#DoFoldOrOpenEntry('', 'sp')<bar>call Project#DoToggleProject()<Cr>
@@ -132,8 +137,12 @@ endwhile
 nnoremap <buffer>          <LocalLeader>0 \|:call Project#ListSpawn("")<CR>
 nnoremap <buffer>          <LocalLeader>f0 \|:call Project#ListSpawn("_fold")<CR>
 nnoremap <buffer>          <LocalLeader>F0 \|:call Project#ListSpawn("_fold")<CR>
+
+" TODO Merge between Project#CreateEntriesFromDir (interactive) and Project#RefreshEntriesFromDir (only works on existing dirs
 nnoremap <buffer> <silent> <LocalLeader>c :call Project#CreateEntriesFromDir(0)<CR>
 nnoremap <buffer> <silent> <LocalLeader>C :call Project#CreateEntriesFromDir(1)<CR>
+nnoremap <buffer> <silent> <LocalLeader>d :call Project#Test_CreateEntriesFromCurrentDir(1)<CR>
+nnoremap <buffer> <silent> <LocalLeader>D :call Project#CreateEntriesFromCurrentDir(1)<CR>
 
 nnoremap <buffer> <silent> <LocalLeader>r :call Project#RefreshEntriesFromDir(0)<CR>
 nnoremap <buffer> <silent> <LocalLeader>R :call Project#RefreshEntriesFromDir(1)<CR>
@@ -145,7 +154,11 @@ nnoremap <buffer> <silent> <LocalLeader>E :call Project#OpenEntry(line('.'), '',
 " The :help command stomps on the Project Window.  Try to avoid that.
 " This is not perfect, but it is alot better than without the mappings.
 cnoremap <buffer> help let g:proj_doinghelp = 1<CR>:help
-nnoremap <buffer> <F1> :let g:proj_doinghelp = 1<CR><F1>
+
+" nnoremap <buffer> <F1> :let g:proj_doinghelp = 1<CR><F1>
+" TODO find better solution for ToggleHelp (popup_window?)
+" nnoremap <buffer> <F1> :call Project#ToggleHelp()<CR>
+
 " This is to avoid changing the buffer, but it is not fool-proof.
 nnoremap <buffer> <silent> <C-^> <Nop>
 "nmap <script> <Plug>ProjectOnly :let lzsave=&lz<CR>:set lz<CR><C-W>o:Project<CR>:silent! wincmd p<CR>:let &lz=lzsave<CR>:unlet lzsave<CR>
@@ -170,7 +183,8 @@ augroup Project
   autocmd BufWinEnter,BufEnter *.vpj if &filetype == 'Project'|set isf-=32|set fcl=|set fdo+=search|exe 'normal z.'|endif
 
 	autocmd BufEnter *.vpj if &filetype == 'Project'|if !exists("b:shellslash_save")|let b:shellslash_save=&shellslash|set noshellslash|endif|endif
-  autocmd BufLeave *.vpj if &filetype == 'Project'|let &shellslash=b:shellslash_save|unlet b:shellslash_save|endif
+	autocmd BufLeave *.vpj if &filetype == 'Project'|let &shellslash=b:shellslash_save|unlet b:shellslash_save|endif
+	autocmd WinLeave * call Project#RecordPrevBuffer_au()
 
 augroup End
 
