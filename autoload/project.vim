@@ -3,12 +3,13 @@
 " Author:      Aric Blumer (Aric.Blumer at aricvim@charter.net)
 " Last Change: Fri 13 Oct 2006 09:47:08 AM EDT
 " Version:     1.4.1
+" Modified:    07.06.2020
+" Version:     1.4.2 Use curhome for Project#GenerateEntry
 "=============================================================================
 " See documentation in accompanying help file
 " You may use this code in whatever way you see fit.
 
-" Initialization <<<
-function! Project#Project(filename) " <<<
+function! Project#Project(filename) " {{{
     set lazyredraw
 		" let l:foldenable = &l:foldenable
 		"DONE saving views currently disabled
@@ -58,12 +59,11 @@ function! Project#Project(filename) " <<<
     endif
 
     let g:proj_last_buffer = -1
-    ">>>
     if !exists("g:proj_running")
-        " Autocommands <<<
+        " Autocommands {{{
         " Autocommands to clean up if we do a buffer wipe
         " These don't work unless we substitute \ for / for Windows
-        let bufname=escape(substitute(expand('%:p', 0), '\\', '/', 'g'), ' ')
+        let bufname=escape(substitute(expand('%:p', 0), '\', '/', 'g'), ' ')
         exec 'au BufWipeout '.bufname.' au! * '.bufname
         exec 'au BufWipeout '.bufname.' unlet g:proj_running'
         exec 'au BufWipeout '.bufname.' nunmap <C-W>o'
@@ -71,8 +71,7 @@ function! Project#Project(filename) " <<<
         " Autocommands to keep the window the specified size
         exec 'au WinLeave '.bufname.' call Project#DoEnsurePlacementSize_au()'
         exec 'au BufEnter '.bufname.' call Project#DoSetupAndSplit_au()'
-        au WinLeave * call Project#RecordPrevBuffer_au()
-        " >>>
+        " }}}
         setlocal buflisted
         silent loadview
         let g:proj_running = bufnr(bufname.'\>')
@@ -83,9 +82,10 @@ function! Project#Project(filename) " <<<
         doautocmd BufEnter
         setlocal nobuflisted
     endif
+		doautocmd WinEnter
     call s:ReverseStart()
-endfunction " >>>
-" DoProjectOnly() <<<
+endfunction " }}}
+" DoProjectOnly() {{{
 function! Project#DoProjectOnly()
 		if winbufnr(0) != g:proj_running
 				" let lzsave=&lz
@@ -96,8 +96,8 @@ function! Project#DoProjectOnly()
 				" let &lz=lzsave
 				" unlet lzsave
 		endif
-endfunction " >>>
-" ProjFoldText() <<<
+endfunction " }}}
+" ProjFoldText() {{{
 "   The foldtext function for displaying just the description.
 function! Project#ProjFoldText()
     let line=substitute(getline(v:foldstart),'^[ \t#]*\([^=]*\)[^#]*#\?\s*\(.*\)', '\1   # \2', '')
@@ -105,10 +105,8 @@ function! Project#ProjFoldText()
     let line=substitute(line,'{\s*#', '  #', '')
     let line=strpart('                                     ', 0, (v:foldlevel - 1)).substitute(line,'\s*{\+\s*', '', '')
     return line
-endfunction ">>>
-" Change to avoid conflict with utl plugin HS 22.12.2006
-" if match(g:proj_flags, '\Cs')!=-1 && has('syntax') && exists('g:syntax_on') && !has('syntax_items')
-" Project#SortR(start, end) <<<
+endfunction "}}}
+" Project#SortR(start, end) {{{
 " Sort lines.  SortR() is called recursively.
 "  from ":help eval-examples" by Robert Webb, slightly modified
 function! Project#SortR(start, end)
@@ -149,8 +147,8 @@ function! Project#SortR(start, end)
     endif
     call Project#SortR(a:start, partition - 1)
     call Project#SortR(partition + 1, a:end)
-endfunc ">>>
-" Project#IsAbsolutePath(path) <<<
+endfunc "}}}
+" Project#IsAbsolutePath(path) {{{
 "   Returns true if filename has an absolute path.
 function! Project#IsAbsolutePath(path)
     if a:path =~ '^ftp:' || a:path =~ '^rcp:' || a:path =~ '^scp:' || a:path =~ '^https\?:'
@@ -161,12 +159,12 @@ function! Project#IsAbsolutePath(path)
     else
         let path=a:path
     endif
-    if path[0] == '/' || path[0] == '~' || path[0] == '\\' || path[1] == ':'
+    if path[0] == '/' || path[0] == '~' || path[0] == '\' || path[1] == ':'
         return 1
     endif
     return 0
-endfunction " >>>
-" Project#DoSetupAndSplit() <<<
+endfunction " }}}
+" Project#DoSetupAndSplit() {{{
 function! Project#DoSetupAndSplit()
     let n = winnr()                 " Determine if there is a CTRL_W-p window
     silent! wincmd p
@@ -186,8 +184,8 @@ function! Project#DoSetupAndSplit()
         exec b:proj_resize_command
         wincmd p
     endif
-endfunction ">>>
-" Project#DoSetupAndSplit_au() <<<
+endfunction "}}}
+" Project#DoSetupAndSplit_au() {{{
 "   Same as above but ensure that the Project window is the current
 "   window.  Only called from an autocommand
 function! Project#DoSetupAndSplit_au()
@@ -210,20 +208,27 @@ function! Project#DoSetupAndSplit_au()
 endfunction
 function! Project#RecordPrevBuffer_au()
     let g:proj_last_buffer = bufnr('%')
-endfunction ">>>
-" Project#GetLineInfo(lineno) <<<
+endfunction "}}}
+" Project#GetLineInfo(lineno) {{{
 "   Get info from any line
 function! Project#GetPath(lineno)
+	  if &fdm != "marker"
+	  	echoerr "Foldmethod not marker. Operation aborted!"
+	  	return
+		endif
 	  sil! let curinfo = expand(Project#GetFname(a:lineno))
 	  if curinfo == ""
 	  	let curinfo=Project#RecursivelyConstructDirectives(a:lineno)
       let curinfo = expand(Project#GetHome(curinfo, ''))
 		endif
-    let curinfo = "\"".fnamemodify(curinfo,":p")."\""
+    let curinfo = fnamemodify(curinfo,":p")
+    if match(curinfo, '\s') >= 0
+      let curinfo = "\"".curinfo."\""
+		endif
 		let @*=curinfo
 		return curinfo
-endfunction ">>>
-" Project#RecursivelyConstructDirectives(lineno) <<<
+endfunction "}}}
+" Project#RecursivelyConstructDirectives(lineno) {{{
 "   Construct the inherited directives
 function! Project#RecursivelyConstructDirectives(lineno)
     let lineno=Project#FindFoldTop(a:lineno)
@@ -256,6 +261,10 @@ function! Project#RecursivelyConstructDirectives(lineno)
     endif
     " Extract any CD information
     let c_d = Project#GetCd(infoline, home)
+    " echomsg "c_d 1 " . c_d
+    " echomsg "parent_c_d 1 " . parent_c_d
+    " echomsg "parent_home 1 " . parent_home
+    " echomsg "parent_infoline 1 " . parent_infoline
     if c_d != ''
         if (foldlevel(foldlineno) == 1) && !Project#IsAbsolutePath(c_d)
             call confirm('Outermost Project Fold must have absolute CD path!  Or perhaps the path does not exist.', "&OK", 1)
@@ -278,8 +287,8 @@ function! Project#RecursivelyConstructDirectives(lineno)
     let filter = Project#GetFilter(infoline, parent_filter)
     if filter == '' | let filter = parent_filter | endif
     return Project#ConstructInfo(home, c_d, scriptin, scriptout, '', filter)
-endfunction ">>>
-" Project#ConstructInfo(home, c_d, scriptin, scriptout, flags, filter) <<<
+endfunction "}}}
+" Project#ConstructInfo(home, c_d, scriptin, scriptout, flags, filter) {{{
 function! Project#ConstructInfo(home, c_d, scriptin, scriptout, flags, filter)
     let retval='Directory='.a:home
     if a:c_d[0] != ''
@@ -295,8 +304,8 @@ function! Project#ConstructInfo(home, c_d, scriptin, scriptout, flags, filter)
         let retval=retval.' filter="'.a:filter.'"'
     endif
     return retval
-endfunction ">>>
-" Project#OpenEntry(line, precmd, editcmd) <<<
+endfunction "}}}
+" Project#OpenEntry(line, precmd, editcmd) {{{
 "   Get the filename under the cursor, and open a window with it.
 function! Project#OpenEntry(line, precmd, editcmd, dir)
     silent exec a:precmd
@@ -312,6 +321,7 @@ function! Project#OpenEntry(line, precmd, editcmd, dir)
             if strlen(fname) == 0
               " DONE try to perform commands from the pragma keep part.
                 let fname=substitute(getline(a:line), '\s*#\s*pragma keep\s*', '', '') " Get rid of pragma keep and preceeding parts
+                let fname=substitute(fname, '^\s*#\s*', '', '') " Get rid of leading comments and whitespace
                 echomsg "fname in Project is " . fname
                 call hgsutils#OpenLink(0,fname)
                 return -1                    " The line is blank. Do nothing.
@@ -324,9 +334,8 @@ function! Project#OpenEntry(line, precmd, editcmd, dir)
     let retval=Project#OpenEntry2(a:line, infoline, fname, a:editcmd)
     call Project#DisplayInfo()
     return retval
-endfunction
-">>>
-" Project#OpenEntry2(line, infoline, precmd, editcmd) <<<
+endfunction "}}}
+" Project#OpenEntry2(line, infoline, precmd, editcmd) {{{
 "   Get the filename under the cursor, and open a window with it.
 function! Project#OpenEntry2(line, infoline, fname, editcmd)
     let fname=escape(a:fname, ' %#')        " Thanks to Thomas Link for cluing me in on % and #
@@ -382,9 +391,8 @@ function! Project#OpenEntry2(line, infoline, fname, editcmd)
         endif
     endif
     return 1
-endfunction
-">>>
-" Project#DoFoldOrOpenEntry(cmd0, cmd1) <<<
+endfunction "}}}
+" Project#DoFoldOrOpenEntry(cmd0, cmd1) {{{
 "   Used for double clicking. If the mouse is on a fold, open/close it. If
 "   not, try to open the file.
 function! Project#DoFoldOrOpenEntry(cmd0, cmd1)
@@ -411,8 +419,8 @@ function! Project#DoFoldOrOpenEntry(cmd0, cmd1)
 			wincmd =
 		endif
 	endif
-endfunction ">>>
-" Project#VimDirListing(filter, padding, separator, filevariable, filecount, dirvariable, dircount) <<<
+endfunction "}}}
+" Project#VimDirListing(filter, padding, separator, filevariable, filecount, dirvariable, dircount) {{{
 function! Project#VimDirListing(filter, padding, separator, filevariable, filecount, dirvariable, dircount)
     let end = 0
     let files=''
@@ -450,11 +458,23 @@ function! Project#VimDirListing(filter, padding, separator, filevariable, fileco
             let {a:filecount}={a:filecount} + 1
         endif
     endwhile
-endfunction ">>>
-" Project#GenerateEntry(recursive, name, absolute_dir, dir, c_d, filter_directive, filter, foldlev, sort) <<<
-function! Project#GenerateEntry(recursive, line, name, absolute_dir, dir, c_d, filter_directive, filter, foldlev, sort)
+endfunction "}}}
+" Project#GenerateEntry(recursive, name, curhome, absolute_dir, dir, c_d, filter_directive, filter, foldlev, sort) {{{
+function! Project#GenerateEntry(recursive, line, name, curhome, absolute_dir, dir, c_d, filter_directive, filter, foldlev, sort)
+	 " echomsg "xx 2 curlin=" . line(".")
+   " echomsg "xx 2 a:line=" . a:line
+   " echomsg "xx 2 a:name=" . a:name
+   " echomsg "xx 2 a:absolute_dir=" . a:absolute_dir
+   " echomsg "xx 2 a:dir=" . a:dir
+   " echomsg "xx 2 a:c_d=" . a:c_d
+   " echomsg "xx 2 a:filter_directive=" . a:filter_directive
+   " echomsg "xx 2 a:filter=" . a:filter
     let line=a:line
-    if a:dir =~ '\\ '
+    let curhome=a:curhome
+    if curhome!=""
+    	let dir=curhome
+    	let curhome = ""
+		elseif a:dir =~ '\\ '
         let dir='"'.substitute(a:dir, '\\ ', ' ', 'g').'"'
     else
         let dir=a:dir
@@ -463,9 +483,18 @@ function! Project#GenerateEntry(recursive, line, name, absolute_dir, dir, c_d, f
     let c_d=(strlen(a:c_d) > 0) ? 'CD='.a:c_d.' ' : ''
     let c_d=(strlen(a:filter_directive) > 0) ? c_d.'filter="'.a:filter_directive.'" ': c_d
     call append(line, spaces.'}')
-    call append(line, spaces.a:name.'='.dir.' '.c_d.'{')
+    " HS 28.05.2019 Always quote dir
+    let quoted_dir='"'.substitute(dir, '"\?\([^"]*\)"\?', '\1', 'g').'"'
+    redraw
+    echomsg "creating entry for " . quoted_dir
+    call append(line, spaces.a:name.'='.quoted_dir.' '.c_d.'{')
     if a:recursive
-        exec 'cd '.a:absolute_dir
+    	  " let abs_dir=fnameescape(a:absolute_dir)
+    	  " echomsg a:absolute_dir
+    	  let abs_dir=substitute(a:absolute_dir,'\\\(\s\)\@!','\\','g')
+    	  let abs_dir=substitute(abs_dir,'\\ ',' ','g')
+    	  " echomsg abs_dir
+        exec 'cd '.abs_dir
         call Project#VimDirListing("*", '', "\010", 'b:files', 'b:filecount', 'b:dirs', 'b:dircount')
         cd -
         let dirs=b:dirs
@@ -475,21 +504,21 @@ function! Project#GenerateEntry(recursive, line, name, absolute_dir, dir, c_d, f
             let dname = substitute(dirs,  '\(\( \|\f\|:\)*\).*', '\1', '')
             let edname = escape(dname, ' ')
             let dirs = substitute(dirs, '\( \|\f\|:\)*.\(.*\)', '\2', '')
-            let line=Project#GenerateEntry(1, line + 1, dname, a:absolute_dir.'/'.edname, edname, '', '', a:filter, a:foldlev+1, a:sort)
+            let line=Project#GenerateEntry(1, line + 1, dname, curhome, abs_dir.'/'.edname, edname, '', '', a:filter, a:foldlev+1, a:sort)
             let dcount=dcount-1
         endwhile
     endif
     return line+1
-endfunction " >>>
-" Project#DoEntryFromDir(line, name, absolute_dir, dir, c_d, filter_directive, filter, foldlev, sort) <<<
+endfunction " }}}
+" Project#DoEntryFromDir(line, name, absolute_dir, dir, c_d, filter_directive, filter, foldlev, sort) {{{
 "   Generate the fold from the directory hierarchy (if recursive), then
 "   fill it in with RefreshEntriesFromDir()
-function! Project#DoEntryFromDir(recursive, line, name, absolute_dir, dir, c_d, filter_directive, filter, foldlev, sort)
-    call Project#GenerateEntry(a:recursive, a:line, a:name, escape(a:absolute_dir, ' '), escape(a:dir, ' '), escape(a:c_d, ' '), a:filter_directive, a:filter, a:foldlev, a:sort)
+function! Project#DoEntryFromDir(recursive, line, name, curhome, absolute_dir, dir, c_d, filter_directive, filter, foldlev, sort)
+    call Project#GenerateEntry(a:recursive, a:line, a:name, a:curhome, escape(a:absolute_dir, ' '), escape(a:dir, ' '), escape(a:c_d, ' '), a:filter_directive, a:filter, a:foldlev, a:sort)
     normal! j
     call Project#RefreshEntriesFromDir(1)
-endfunction ">>>
-" Project#CreateEntriesFromDir(recursive) <<<
+endfunction "}}}
+" Project#CreateEntriesFromDir(recursive) {{{
 "   Prompts user for information and then calls Project#DoEntryFromDir()
 function! Project#CreateEntriesFromDir(recursive)
     " Save a mark for the current cursor position
@@ -514,7 +543,7 @@ function! Project#CreateEntriesFromDir(recursive)
     else
         let dir = input('Enter the '.absolute.'Directory to Load: ', '', 'file')
     endif
-    if (dir[strlen(dir)-1] == '/') || (dir[strlen(dir)-1] == '\\')
+    if (dir[strlen(dir)-1] == '/') || (dir[strlen(dir)-1] == '\')
         let dir=strpart(dir, 0, strlen(dir)-1) " Remove trailing / or \
     endif
     let dir = substitute(dir, '^\~', $HOME, 'g')
@@ -522,13 +551,13 @@ function! Project#CreateEntriesFromDir(recursive)
         let parent_directive=Project#RecursivelyConstructDirectives(line)
         let filter = Project#GetFilter(parent_directive, '*')
         let home=Project#GetHome(parent_directive, '')
-        if home[strlen(home)-1] != '/' && home[strlen(home)-1] != '\\'
+        if home[strlen(home)-1] != '/' && home[strlen(home)-1] != '\'
             let home=home.'/'
         endif
         unlet parent_directive
         if Project#IsAbsolutePath(dir)
             " It is not a relative path  Try to make it relative
-            let hend=matchend(dir, '\C'.glob(home))
+            let hend=matchend(substitute(dir,'\\', '/','g'), '\C'.substitute(glob(home),'\\','/','g')[:-2])	
             if hend != -1
                 let dir=strpart(dir, hend)          " The directory can be a relative path
             else
@@ -539,7 +568,7 @@ function! Project#CreateEntriesFromDir(recursive)
     if strlen(home.dir) == 0
         return
     endif
-    if !isdirectory(home.dir)
+    if !isdirectory(glob(home.dir))
         if has("unix")
             silent exec '!mkdir '.home.dir.' > /dev/null'
         else
@@ -562,11 +591,13 @@ function! Project#CreateEntriesFromDir(recursive)
         let foldlev = foldlev - 1           " . . . decrease the indentation by 1.
     endif
     " Do the work
-    call Project#DoEntryFromDir(a:recursive, line, name, home.dir, dir, c_d, filter_directive, filter, foldlev, 0)
+    let curhome = ''
+    call Project#DoEntryFromDir(a:recursive, line, name, curhome, home.dir, dir, c_d, filter_directive, filter, foldlev, 0)
     " Restore the cursor position
-    normal! `k
-endfunction ">>>
-" Project#RefreshEntriesFromDir(recursive) <<<
+    silent! normal! g'k
+    delmarks k
+endfunction "}}}
+" Project#RefreshEntriesFromDir(recursive) {{{
 "   Finds metadata at the top of the fold, and then replaces all files
 "   with the contents of the directory.  Works recursively if recursive is 1.
 function! Project#RefreshEntriesFromDir(recursive)
@@ -685,6 +716,8 @@ function! Project#RefreshEntriesFromDir(recursive)
             call Project#VimDirListing(filter, spaces, "\n", 'b:files', 'b:filecount', 'b:dirs', 'b:dircount')
             if b:filecount > 0
                 normal! mk
+    						echomsg "Entering  files for " . home 
+    						redraw
                 silent! put =b:files
                 normal! `kj
                 if sort
@@ -699,8 +732,8 @@ function! Project#RefreshEntriesFromDir(recursive)
     endif
     " Go to the top of the refreshed fold.
     normal! [z
-endfunction ">>>
-" Project#MoveUp() <<<
+endfunction "}}}
+" Project#MoveUp() {{{
 "   Moves the entity under the cursor up a line.
 function! Project#MoveUp()
     let lineno=line('.')
@@ -718,8 +751,8 @@ function! Project#MoveUp()
     if fc != -1
         normal! zc
     endif
-endfunction ">>>
-" Project#MoveDown() <<<
+endfunction "}}}
+" Project#MoveDown() {{{
 "   Moves the entity under the cursor down a line.
 function! Project#MoveDown()
     let fc=foldclosed('.')
@@ -729,16 +762,16 @@ function! Project#MoveDown()
     if (fc != -1) && (foldclosed('.') == -1)
         normal! zc
     endif
-endfunction " >>>
-" Project#DisplayInfo() <<<
+endfunction " }}}
+" Project#DisplayInfo() {{{
 "   Displays filename and current working directory when i (info) is in
 "   the flags.
 function! Project#DisplayInfo()
     if match(g:proj_flags, '\Ci') != -1
         echo 'file: '.expand('%').', cwd: '.getcwd().', lines: '.line('$')
     endif
-endfunction ">>>
-" Project#SetupAutoCommand(cwd) <<<
+endfunction "}}}
+" Project#SetupAutoCommand(cwd) {{{
 "   Sets up an autocommand to ensure that the cwd is set to the one
 "   desired for the fold regardless.  :lcd only does this on a per-window
 "   basis, not a per-buffer basis.
@@ -746,38 +779,100 @@ function! Project#SetupAutoCommand(cwd)
     if !exists("b:proj_has_autocommand")
         let b:proj_cwd_save = escape(getcwd(), ' ')
         let b:proj_has_autocommand = 1
-        let bufname=escape(substitute(expand('%:p', 0), '\\', '/', 'g'), ' ')
+        let bufname=escape(substitute(expand('%:p', 0), '\', '/', 'g'), ' ')
         exec 'au BufEnter '.bufname." let b:proj_cwd_save=escape(getcwd(), ' ') | cd ".a:cwd
         exec 'au BufLeave '.bufname.' exec "cd ".b:proj_cwd_save'
         exec 'au BufWipeout '.bufname.' au! * '.bufname
     endif
-endfunction ">>>
-" Project#SetupScriptAutoCommand(bufcmd, script) <<<
+endfunction "}}}
+" Project#SetupScriptAutoCommand(bufcmd, script) {{{
 "   Sets up an autocommand to run the scriptin script.
 function! Project#SetupScriptAutoCommand(bufcmd, script)
     if !exists("b:proj_has_".a:bufcmd)
         let b:proj_has_{a:bufcmd} = 1
-        exec 'au '.a:bufcmd.' '.escape(substitute(expand('%:p', 0), '\\', '/', 'g'), ' ').' source '.a:script
+        exec 'au '.a:bufcmd.' '.escape(substitute(expand('%:p', 0), '\', '/', 'g'), ' ').' source '.a:script
     endif
-endfunction " >>>
-" Project#DoEnsurePlacementSize_au() <<<
+endfunction " }}}
+" Project#ToggleHelp {{{
+" Derived from BufExplorer plugin
+function! Project#ToggleHelp()
+		" TODO For vim 8.2 use the popup window here
+		" TODO Somehow the help text is not removed yet.
+		let b:proj_windowhelp = !b:proj_windowhelp
+		if !exists(s:firstBufferLine)
+			let s:firstBufferLine = 1
+		endif
+
+    " setlocal modifiable
+    " Save position.
+    normal! mk
+    " Remove old header.
+    if s:firstBufferLine > 1
+        execute "keepjumps 1,".(s:firstBufferLine - 1) "d _"
+    endif
+
+    call append(0, Project#CreateHelp())
+
+    silent! normal! g'k
+    delmarks k
+
+    " setlocal nomodifiable
+
+endfunction " }}}
+" Project#CreateHelp {{{
+" Derived from BufExplorer plugin
+function! Project#CreateHelp()
+	let header = []
+
+	if b:proj_windowhelp == 1
+		" TODO put the real help text here!
+		call add(header, '# <enter> or o or Mouse-Double-Click : open buffer under cursor')
+		call add(header, '# <shift-enter> or t : open buffer in another tab')
+		call add(header, '# a : toggle find active buffer')
+		call add(header, '# b : Fast buffer switching with b<any bufnum>')
+		call add(header, '# B : toggle if to save/use recent tab or not')
+		call add(header, '# d : delete buffer')
+		call add(header, '# D : wipe buffer')
+		call add(header, '# F : open buffer in another window above the current')
+		call add(header, '# f : open buffer in another window below the current')
+		call add(header, '# p : toggle splitting of file and path name')
+		call add(header, '# q : qu1t')
+		call add(header, '# r : reverse sort')
+		call add(header, '# R : toggle showing relative or full paths')
+		call add(header, '# S : reverse cycle thru "sort by" fields')
+		call add(header, '# T : toggle if to show only buffers for this tab or not')
+		call add(header, '# u : toggle showing unlisted buffers')
+		call add(header, '# V : open buffer in another window on the left of the current')
+		call add(header, '# v : open buffer in another window on the right of the current')
+	endif
+
+	let s:firstBufferLine = len(header) + 1
+
+	return header
+endfunction " }}}
+
+" Project#DoEnsurePlacementSize_au() {{{
 "   Ensure that the Project window is on the left of the window and has
 "   the correct size. Only called from an autocommand
 function! Project#DoEnsurePlacementSize_au()
-    if (winbufnr(0) != g:proj_running) || (winnr() != 1)
-        if exists("g:proj_doinghelp")
-            if g:proj_doinghelp > 0
-                let g:proj_doinghelp = g:proj_doinghelp - 1
-                return
-            endif
-            unlet g:proj_doinghelp
-            return
-        endif
-        exec b:proj_locate_command
-    endif
-    exec b:proj_resize_command
-endfunction ">>>
-" Project#Spawn(number) <<<
+	if exists("g:proj_running")
+		if (winbufnr(0) != g:proj_running) || (winnr() != 1)
+			if exists("g:proj_doinghelp")
+				if g:proj_doinghelp > 0
+					let g:proj_doinghelp = g:proj_doinghelp - 1
+					return
+				endif
+				unlet g:proj_doinghelp
+				return
+			endif
+			exec b:proj_locate_command
+		endif
+	endif
+	if exists("b:proj_resize_command")
+		exec b:proj_resize_command
+	endif
+endfunction "}}}
+" Project#Spawn(number) {{{
 "   Spawn an external command on the file
 function! Project#Spawn(number)
     echo | if exists("g:proj_run".a:number)
@@ -814,8 +909,8 @@ function! Project#Spawn(number)
             exec command
         endif
     endif
-endfunction ">>>
-" Project#ListSpawn(varnamesegment) <<<
+endfunction "}}}
+" Project#ListSpawn(varnamesegment) {{{
 "   List external commands
 function! Project#ListSpawn(varnamesegment)
     let number = 1
@@ -827,8 +922,8 @@ function! Project#ListSpawn(varnamesegment)
         endif
         let number=number + 1
     endwhile
-endfunction ">>>
-" Project#FindFoldTop(line) <<<
+endfunction "}}}
+" Project#FindFoldTop(line) {{{
 "   Return the line number of the directive line
 function! Project#FindFoldTop(line)
     let lineno=a:line
@@ -842,8 +937,8 @@ function! Project#FindFoldTop(line)
         let lineno = lineno - 1
     endwhile
     return lineno
-endfunction ">>>
-" Project#FindFoldBottom(line) <<<
+endfunction "}}}
+" Project#FindFoldBottom(line) {{{
 "   Return the line number of the directive line
 function! Project#FindFoldBottom(line)
     let lineno=a:line
@@ -857,8 +952,8 @@ function! Project#FindFoldBottom(line)
         let lineno = lineno + 1
     endwhile
     return lineno
-endfunction ">>>
-" Project#LoadAll(recurse, line) <<<
+endfunction "}}}
+" Project#LoadAll(recurse, line) {{{
 "   Load all files in a project
 function! Project#LoadAll(recurse, line)
     let b:loadcount=0
@@ -877,8 +972,8 @@ function! Project#LoadAll(recurse, line)
     echon b:loadcount." Files Loaded\r"
     unlet b:loadcount
     if exists("b:stop_everything") | unlet b:stop_everything | endif
-endfunction ">>>
-" Project#WipeAll(recurse, line) <<<
+endfunction "}}}
+" Project#WipeAll(recurse, line) {{{
 "   Wipe all files in a project
 function! Project#WipeAll(recurse, line)
     let b:wipecount=0
@@ -893,7 +988,7 @@ function! Project#WipeAll(recurse, line)
         let b:totalcount=b:totalcount+1
         let fname=substitute(fname, '^\~', $HOME, 'g')
         let fname=expand(fname)
-         echomsg fname
+         " echomsg fname
         if bufloaded(substitute(fname, '\\ ', ' ', 'g'))
             if getbufvar(fname.'\>', '&modified') == 1
                 exec 'sb '.fname
@@ -917,8 +1012,8 @@ function! Project#WipeAll(recurse, line)
     echon b:wipecount.' of '.b:totalcount." Files Wiped\r"
     unlet b:wipecount b:totalcount
     if exists("b:stop_everything") | unlet b:stop_everything | endif
-endfunction ">>>
-" Project#LoadAllSplit(recurse, line) <<<
+endfunction "}}}
+" Project#LoadAllSplit(recurse, line) {{{
 "   Load all files in a project using split windows.
 "   Contributed by A. Harrison
 function! Project#LoadAllSplit(recurse, line)
@@ -939,8 +1034,8 @@ function! Project#LoadAllSplit(recurse, line)
     echon b:loadcount." Files Loaded\r"
     unlet b:loadcount
     if exists("b:stop_everything") | unlet b:stop_everything | endif
-endfunction ">>>
-" Project#GrepAll(recurse, lineno, pattern) <<<
+endfunction "}}}
+" Project#GrepAll(recurse, lineno, pattern) {{{
 "   Grep all files in a project, optionally recursively
 function! Project#GrepAll(recurse, lineno, pattern)
     cunmap <buffer> help
@@ -954,6 +1049,7 @@ function! Project#GrepAll(recurse, lineno, pattern)
     unlet b:escape_spaces
     cclose " Make sure grep window is closed
     call Project#DoSetupAndSplit()
+    call histadd("/", pattern)
     if match(g:proj_flags, '\Cv') == -1
         silent! exec 'silent! grep '.pattern.' '.fnames
         if v:shell_error != 0
@@ -965,9 +1061,13 @@ function! Project#GrepAll(recurse, lineno, pattern)
         silent! exec 'silent! noau vimgrep /'.pattern.'/j '.fnames.'|cw'
         copen
     endif
-endfunction ">>>
-" GetXXX Functions <<<
-function! Project#GetHome(info, parent_home)
+endfunction "}}}
+" === GetXXX Functions === {{{
+function! Project#GetEntry(info) "{{{
+    let entry=substitute(a:info, '^\s*\([^=]*\)=.*', '\1', '')
+    return entry
+endfunction "}}}
+function! Project#GetHome(info, parent_home) "{{{
     " Thanks to Adam Montague for pointing out the need for @ in urls.
     let home=substitute(a:info, '^[^=]*=\(\(\\ \|\f\|:\|@\)\+\).*', '\1', '')
     if strlen(home) == strlen(a:info)
@@ -982,13 +1082,13 @@ function! Project#GetHome(info, parent_home)
         let home=a:parent_home.'/'.home
     endif
     return home
-endfunction
-function! Project#GetFilter(info, parent_filter)
+endfunction "}}}
+function! Project#GetFilter(info, parent_filter) " {{{
     let filter = substitute(a:info, '.*\<filter="\([^"]*\).*', '\1', '')
     if strlen(filter) == strlen(a:info) | let filter = a:parent_filter | endif
     return filter
-endfunction
-function! Project#GetCd(info, home)
+endfunction "}}}
+function! Project#GetCd(info, home) " {{{
     let c_d=substitute(a:info, '.*\<CD=\(\(\\ \|\f\|:\)\+\).*', '\1', '')
     if strlen(c_d) == strlen(a:info)
         let c_d=substitute(a:info, '.*\<CD="\(.\{-}\)".*', '\1', '')
@@ -1002,8 +1102,8 @@ function! Project#GetCd(info, home)
         let c_d = a:home.'/'.c_d
     endif
     return c_d
-endfunction
-function! Project#GetScriptin(info, home)
+endfunction "}}}
+function! Project#GetScriptin(info, home) " {{{
     let scriptin = substitute(a:info, '.*\<in=\(\(\\ \|\f\|:\)\+\).*', '\1', '')
     if strlen(scriptin) == strlen(a:info)
         let scriptin=substitute(a:info, '.*\<in="\(.\{-}\)".*', '\1', '')
@@ -1012,8 +1112,8 @@ function! Project#GetScriptin(info, home)
     if strlen(scriptin) == strlen(a:info) | let scriptin='' | else
     if !Project#IsAbsolutePath(scriptin) | let scriptin=a:home.'/'.scriptin | endif | endif
     return scriptin
-endfunction
-function! Project#GetScriptout(info, home)
+endfunction "}}}
+function! Project#GetScriptout(info, home) " {{{
     let scriptout = substitute(a:info, '.*\<out=\(\(\\ \|\f\|:\)\+\).*', '\1', '')
     if strlen(scriptout) == strlen(a:info)
         let scriptout=substitute(a:info, '.*\<out="\(.\{-}\)".*', '\1', '')
@@ -1022,15 +1122,16 @@ function! Project#GetScriptout(info, home)
     if strlen(scriptout) == strlen(a:info) | let scriptout='' | else
     if !Project#IsAbsolutePath(scriptout) | let scriptout=a:home.'/'.scriptout | endif | endif
     return scriptout
-endfunction
-function! Project#GetFlags(info)
+endfunction "}}}
+function! Project#GetFlags(info) " {{{
     let flags=substitute(a:info, '.*\<flags=\([^ {]*\).*', '\1', '')
     if (strlen(flags) == strlen(a:info))
         let flags=''
     endif
     return flags
-endfunction ">>>
-" Project#GetAllFnames(recurse, lineno, separator) <<<
+endfunction "}}}
+"}}}
+" Project#GetAllFnames(recurse, lineno, separator) {{{
 "   Grep all files in a project, optionally recursively
 function! Project#GetAllFnames(recurse, lineno, separator)
     let b:fnamelist=''
@@ -1051,8 +1152,8 @@ function! Project#GetAllFnames(recurse, lineno, separator)
     let retval=b:fnamelist
     unlet b:fnamelist
     return retval
-endfunction ">>>
-" Project#GetFname(lineno) <<<
+endfunction "}}}
+" Project#GetFname(lineno) {{{
 "   Grep all files in a project, optionally recursively
 "   DONE Only works correctly if project window is closed and reopened (check with ,I)
 "        Resolved by doautocmd BufEnter in Project#Project
@@ -1074,8 +1175,8 @@ function! Project#GetFname(line)
     endif
     let infoline = Project#RecursivelyConstructDirectives(a:line)
     return Project#GetHome(infoline, '').'/'.fname
-endfunction ">>>
-" Project#ForEach(recurse, lineno, cmd, data, match) <<<
+endfunction "}}}
+" Project#ForEach(recurse, lineno, cmd, data, match) {{{
 "   Grep all files in a project, optionally recursively
 function! Project#ForEach(recurse, lineno, cmd, data, match)
     let info=Project#RecursivelyConstructDirectives(a:lineno)
@@ -1130,8 +1231,8 @@ function! Project#ForEachR(recurse, lineno, info, cmd, data, match)
         let curline=getline(lineno)
     endwhile
     return lineno
-endfunction ">>>
-" Project#SpawnAll(recurse, number) <<<
+endfunction "}}}
+" Project#SpawnAll(recurse, number) {{{
 "   Spawn an external command on the files of a project
 function! Project#SpawnAll(recurse, number)
     echo | if exists("g:proj_run_fold".a:number)
@@ -1164,11 +1265,12 @@ function! Project#SpawnAll(recurse, number)
             endif
         endif
     endif
-endfunction ">>>
-function! Project#Balloonexpr() " <<<
-	return Project#GetFname(v:beval_lnum)
-endfunction " >>>
-function! s:ReverseStart() " <<<
+endfunction "}}}
+function! Project#Balloonexpr() " {{{
+	sil! let curinfo = Project#GetFname(v:beval_lnum)
+	return curinfo
+endfunction " }}}
+function! s:ReverseStart() " {{{
     set nolazyredraw
 		" if exists("l:foldenable")
 			" let &l:foldenable = l:foldenable
@@ -1178,8 +1280,8 @@ function! s:ReverseStart() " <<<
 			" call winrestview(l:save_view)
 		" endif
     redraw
-endfunction ">>>
-function! Project#DoToggleProject() " <<<
+endfunction "}}}
+function! Project#DoToggleProject() " {{{
 	if !exists('g:proj_running') || bufwinnr(g:proj_running) == -1
 		Project
 	else
@@ -1197,23 +1299,23 @@ function! Project#DoToggleProject() " <<<
 		set nolazyredraw
 		redraw
 	endif
-endfunction " >>>
-fun! Project#ProjectGetFileNames(recur) " <<<
+endfunction " }}}
+fun! Project#ProjectGetFileNames(recur) " {{{
 	let g:project_current_filelist=map(map(split(Project#GetAllFnames(a:recur,line("."),";"), ";"),"expand(v:val)"),"fnamemodify(v:val,\":p\")")
-endfun " >>>
-fun! Project#ProjectGetExistingFileNames(recur) " <<<
+endfun " }}}
+fun! Project#ProjectGetExistingFileNames(recur) " {{{
 	call Project#ProjectGetFileNames(a:recur)
 	" DONE Files with blanks need escaping leads currently to error: E110: Missing ')' 
 	sil! let g:project_current_existing_filelist=filter(map(copy(g:project_current_filelist),'filereadable(escape(v:val,"\\"))?("".v:val.""):""'),'v:val!~"^\s*$"')
 	let @*=join(g:project_current_existing_filelist,"\n")
 	echomsg b:variablemessage . "(recur = " . a:recur . ", @* = g:project_current_existing_filelist)"
-endfun " >>>
-fun! Project#ProjectGetAllFileNames(recur) " <<<
+endfun " }}}
+fun! Project#ProjectGetAllFileNames(recur) " {{{
 	call Project#ProjectGetFileNames(a:recur)
 	let @*=join(g:project_current_filelist,"\n")
 	echomsg b:variablemessage . "(recur = " . a:recur . ", @* = g:project_current_filelist)"
-endfun " >>>
-fun! Project#ProjectGrepTODOInAllFileNames() " <<<
+endfun " }}}
+fun! Project#ProjectGrepTODOInAllFileNames() " {{{
 	call Project#ProjectGetExistingFileNames(1)
 	if exists("g:tlTokenList")
 		let sstring="\\(" . join(g:tlTokenList,"\\|") ."\\)"
@@ -1234,8 +1336,8 @@ fun! Project#ProjectGrepTODOInAllFileNames() " <<<
 	cclose
 	normal ,p
 	copen
-endfun " >>>
-function! Project#GetCurrentProjectFilename() " <<<
+endfun " }}}
+function! Project#GetCurrentProjectFilename() " {{{
 	"This function can e.g. be used for statusline information
   if exists("g:proj_running")
   	let i =  g:proj_running
@@ -1249,5 +1351,103 @@ function! Project#GetCurrentProjectFilename() " <<<
 		endif
 	endif
 	return ""
-endfunction " >>>
-"   vim: set foldmethod=marker foldmarker=<<<,>>> foldlevel=1:
+endfunction " }}}
+" Project#CreateEntriesFromCurrentDir(recursive) {{{
+"   Prompts user for information and then calls Project#DoEntryFromDir()
+function! Project#CreateEntriesFromCurrentDir(recursive)
+    " Save a mark for the current cursor position
+    normal! mk
+    let curlin=getline(line('.'))
+    let line=line('.')
+    let line=line > 0 ? line : 0 
+    let name = Project#GetEntry (curlin)
+    if strlen(name) == 0
+        return
+    endif
+    let foldlev=foldlevel(line)
+    if (foldclosed(line) != -1) || (getline(line) =~ '}')
+        let foldlev=foldlev - 1
+    endif
+    let absolute = (foldlev <= 0)?'Absolute ': ''
+    let home=''
+    let filter='*'
+    let curhome = expand(Project#GetHome(curlin,''))
+		let dir=Project#RecursivelyConstructDirectives(line)
+		let dir = expand(Project#GetHome(dir, ''))
+    if (dir[strlen(dir)-1] == '/') || (dir[strlen(dir)-1] == '\')
+        let dir=strpart(dir, 0, strlen(dir)-1) " Remove trailing / or \
+    endif
+    if (curhome[strlen(curhome)-1] == '/') || (curhome[strlen(curhome)-1] == '\')
+        let curhome=strpart(curhome, 0, strlen(curhome)-1) " Remove trailing / or \
+    endif
+    if (curhome[0] == '/') || (curhome[0] == '\')
+        let curhome=strpart(curhome, 1, strlen(curhome)-1) " Remove leading / or \
+    endif
+    let dir = substitute(dir, '^\~', $HOME, 'g')
+    if (foldlev > 0)
+        let parent_directive=Project#RecursivelyConstructDirectives(line)
+        let filter = Project#GetFilter(parent_directive, '*')
+        let home=Project#GetHome(parent_directive, '')
+        if home[strlen(home)-1] != '/' && home[strlen(home)-1] != '\'
+            let home=home.'/'
+        endif
+        " echomsg "here 1 " .. home
+        unlet parent_directive
+        if Project#IsAbsolutePath(dir)
+            " It is not a relative path  Try to make it relative
+            let hend=matchend(substitute(dir,'\\', '/','g'), '\C'.substitute(glob(home),'\\','/','g')[:-2])	
+            if hend != -1
+                let dir=strpart(dir, hend)          " The directory can be a relative path
+            else
+                let home=""
+            endif
+        endif
+    endif
+    if strlen(home.dir) == 0
+        return
+    endif
+    if !isdirectory(glob(home.dir))
+        if has("unix")
+            silent exec '!mkdir '.home.dir.' > /dev/null'
+        else
+            call confirm('"'.home.dir.'" is not a valid directory.', "&OK", 1)
+            return
+        endif
+    endif
+    let c_d = Project#GetCd(curlin,'')
+    let filter_directive = Project#GetFilter(curlin,'')
+    if strlen(filter_directive) != 0
+        let filter = filter_directive
+    endif
+    " If I'm on a closed fold, go to the bottom of it
+    if foldclosedend(line) != -1
+        let line = foldclosedend(line)
+    endif
+    let foldlev = foldlevel(line)
+    " If we're at the end of a fold . . .
+    if getline(line) =~ '}'
+        let foldlev = foldlev - 1           " . . . decrease the indentation by 1.
+    endif
+    " Do the work
+		if dir == ''
+			let dir = fnamemodify(home[:-2],":t")
+			let home = fnamemodify(home[:-2],":h") .. '/'
+		endif
+    call Project#DoEntryFromDir(a:recursive, line, name, curhome, home.dir, dir, c_d, filter_directive, filter, foldlev, 0)
+    " Restore the cursor position
+    silent! normal! g'k
+    delmarks k
+endfunction "}}}
+" Project#Test_CreateEntriesFromCurrentDir(recursive) {{{
+"   Finds metadata at the top of the fold, and then replaces all files
+"   with the contents of the directory.  Works recursively if recursive is 1.
+function! Project#Test_CreateEntriesFromCurrentDir(recursive)
+    " Save a mark for the current cursor position
+    let line = getline('.')
+    echomsg "Entry:  " . Project#GetEntry(line)
+    echomsg "Home:   " . Project#GetHome(line, '')
+    echomsg "Filter: " . Project#GetFilter(line, '')
+    echomsg "Cd:     " . Project#GetCd(line, '')
+endfunction "}}}
+"   xim: set foldmethod=marker foldmarker=<<<,>>> fdl=0:  " FIXME foldmarker with <> seems not work due to securemodelines
+"   vim: set foldmethod=marker fdl=0:
